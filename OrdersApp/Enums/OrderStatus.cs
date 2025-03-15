@@ -1,23 +1,32 @@
 ﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Xml.Linq;
 
 namespace OrdersApp.Enums;
 
 public enum OrderStatus
 {
-    [Description("Nowe")]
+    [Display(Name = "Nowe")]
     New,
-    [Description("W magazynie")]
+
+    [Display(Name = "W magazynie")]
     Inwarehouse,
-    [Description("W wysyłce")]
+
+    [Display(Name = "W wysyłce")]
     Inshipping,
-    [Description("Wysłane")]
+
+    [Display(Name = "Wysłane")]
     Sent,
-    [Description("Anulowane")]
+
+    [Display(Name = "Anulowane")]
     Canceled,
-    [Description("Zwrócono do klienta")]
+
+    [Display(Name = "Zwrócono do klienta")]
     Returned,
-    [Description("Bład")]
+
+    [Display(Name = "Bład")]
     Error,
-    [Description("Zamknięte")]
+    
+    [Display(Name = "Zamknięte")]
     Closed
 }

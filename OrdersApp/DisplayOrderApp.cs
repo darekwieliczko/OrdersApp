@@ -3,6 +3,7 @@ using OrdersApp.Entities;
 using OrdersApp.Enums;
 using OrdersApp.Extensions;
 using OrdersApp.Helpers;
+using OrdersApp.Models;
 using OrdersApp.Services;
 using Spectre.Console;
 using System.Globalization;
@@ -82,18 +83,48 @@ public class Display
     {
         var orders = orderService.GetAll().Result;
 
-        var orderTable = new Spectre.Console.Table();
-        orderTable.AddColumns("Id", "ProductName", "Price", "DeliveryAddress", "OrderDate", "Status", "PaymentType", "ClientType");
+        var orderList = orders.Select(o => new OrderModel(o));
+        var fields = OrderModel.FieldNames();
 
-        foreach (var order in orders)
+        var orderTable = new Spectre.Console.Table();
+        orderTable.AddColumns(fields.ToArray());
+
+        var formatColor = "[green]";
+        foreach (var order in orderList)
         {
-            orderTable.AddRow(order.Id.ToString(), order.ProductName, order.Price.ToString(), order.DeliveryAddress, order.OrderDate.ToShortDateString(), order.Status.ToString(), order.PaymentType.ToString(), order.ClientType.ToString());
+            orderTable.AddRow(GetRowValues(order, formatColor).ToArray());
+            formatColor = formatColor == "[green]" ? "[blue]" : "[green]";
         }
 
-        Header("Lista zamówienia");
+        Header("Lista zamówień");
         AnsiConsole.Write(orderTable);
         Footer("Filtrowanie : ");
 
+    }
+
+    private IEnumerable<string> GetRowValues(OrderModel order, string formatColor)
+     => new List<string>
+        {
+            $"{formatColor}{order.Id.ToString()}[/]",
+            $"{formatColor}{order.ProductName}[/]",
+            $"{formatColor}{order.Price.ToString("C")}[/]",
+            $"{formatColor}{order.DeliveryAddress}[/]",
+            $"{formatColor}{order.OrderDate.ToShortDateString()}[/]",
+            $"{formatColor}{order.Status.Name()}[/]",
+            $"{formatColor}{order.PaymentType.Name()}[/]",
+            $"{formatColor}{order.ClientType.Name()}[/]"
+        };
+
+    public bool CloseApplication()
+    {
+        Header("[bold][lime]Zamknięcie aplikacji[/][/]");
+        var closePrompt = AnsiConsole.Prompt(
+            new TextPrompt<bool>("[red]Czy na pewno chcesz zamknąć aplikację?[/]")
+                .AddChoice(true)
+                .AddChoice(false)
+                .DefaultValue(true)
+                .WithConverter(choice => choice ? "y" : "n"));
+        return !closePrompt;
     }
 
     private string ClientDescription()
