@@ -1,37 +1,52 @@
-﻿
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using OrdersApp;
+using OrdersApp.Data;
 using OrdersApp.Enums;
 using OrdersApp.Extensions;
+using OrdersApp.Services;
+using System.Configuration;
 
-Display.Welcome();
+
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
+hostBuilder.Services.AddSingleton<OrdersDbContext>();
+hostBuilder.Services.AddSingleton<IOrderService, OrderService>();
+using IHost host = hostBuilder.Build();
+//await host.StartAsync();
+
+var mainDisplay = new Display(host.Services.GetRequiredService<IOrderService>());
+
+mainDisplay.Welcome();
 ConsoleKeyInfo keyinfo;
 var runApplication = true;
 do
 {
     keyinfo = Console.ReadKey();
     
-    var testKey = keyinfo.Key == ConsoleKey.Escape ? "ESC" : keyinfo.KeyChar.ToString();
-    var command = CommandsExtensions.GetByDescriptionName(testKey);
+    string testKey = keyinfo.Key == ConsoleKey.Escape ? "ESC" : keyinfo.KeyChar.ToString();
+    var command = testKey.GetEnumFromDescription<Commands>();    
 
     switch (command)
     {
         case Commands.NewOrder:
-            Display.NewOrder();
+            mainDisplay.NewOrder();
             break;
         case Commands.SendToWarehouse:
-            Display.OrderToWarehouse();
+            mainDisplay.OrderToWarehouse();
             break;
         case Commands.SendToShipping:
-            Display.SendOrder();
+            mainDisplay.SendOrder();
             break;
         case Commands.DisplayOrders:
-            Display.DisplayOrders();
+            mainDisplay.DisplayOrders();
             break;
         case Commands.Exit:
             runApplication = false;
             break;
         default:
-            Display.Welcome();
+            mainDisplay.Welcome();
             break;
     }
 }
