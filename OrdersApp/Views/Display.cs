@@ -1,10 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using OrdersApp.Entities;
-using OrdersApp.Enums;
+﻿using OrdersApp.Enums;
 using OrdersApp.Extensions;
 using OrdersApp.Helpers;
 using OrdersApp.Models;
-using OrdersApp.Services;
 using Spectre.Console;
 using System.Globalization;
 
@@ -76,11 +73,6 @@ public class Display
                 .DefaultValue("P"));
 
         return orderId;
-    }
-
-    public string SendOrder(IEnumerable<OrderModel> orderList)
-    {
-        return ChangeStatus(orderList, OrderStatus.Inwarehouse);
     }
 
     public string DisplayOrders(IEnumerable<OrderModel> orderList)

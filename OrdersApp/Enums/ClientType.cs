@@ -5,7 +5,7 @@ namespace OrdersApp.Enums;
 
 public enum ClientType
 {
-    [Display(Name = "Osoba fizyczna")]
+    [Display(Name = "Osoba")]
     [StringValue("O")]
     Individual,
 

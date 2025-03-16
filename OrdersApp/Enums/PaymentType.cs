@@ -5,11 +5,11 @@ namespace OrdersApp.Enums;
 
 public enum PaymentType
 {
-    [Display(Name = "Gotówka przy odbiorze")]
+    [Display(Name = "Gotówka")]
     [StringValue("G")]
     Cash,
 
-    [Display(Name = "Karta kredytowa")]
+    [Display(Name = "Karta")]
     [StringValue("K")]
     Card,
 

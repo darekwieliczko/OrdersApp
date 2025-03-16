@@ -1,7 +1,5 @@
 ﻿using OrdersApp.Attributes;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Xml.Linq;
 
 namespace OrdersApp.Enums;
 
@@ -27,11 +25,11 @@ public enum OrderStatus
     [StringValue("A")]
     Canceled,
 
-    [Display(Name = "Zwrócono do klienta")]
+    [Display(Name = "Zwrócono")]
     [StringValue("R")]
     Returned,
 
-    [Display(Name = "Bład")]
+    [Display(Name = "Błąd")]
     [StringValue("B")]
     Error,
     

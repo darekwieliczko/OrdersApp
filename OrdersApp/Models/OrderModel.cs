@@ -83,16 +83,6 @@ public class OrderModel
         };
     }
 
-    public static IEnumerable<OrderModel> ToList(IEnumerable<Order> orders)
-    {
-        return orders.Select(o => new OrderModel(o)).ToList();
-    }
-
-    public static OrderModel ToModel(Order order)
-    {
-        return new OrderModel(order);
-    }
-
     public static IEnumerable<string> FieldNames()
     {
         return typeof(OrderModel).GetProperties().Where(p => GetDisplayName(p.Name) != string.Empty).Select(p => GetDisplayName(p.Name));

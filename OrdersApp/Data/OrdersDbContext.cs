@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using OrdersApp.Entities;
-using System.Configuration;
 
 namespace OrdersApp.Data;
 
@@ -22,8 +21,6 @@ public class OrdersDbContext : DbContext
 
 
     public DbSet<Order> Orders { get; set; }
-    public DbSet<Product> Products { get; set; }
-
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
