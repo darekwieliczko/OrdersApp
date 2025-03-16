@@ -10,6 +10,8 @@ namespace OrdersApp.Controlers;
 
 public class OrderController : IOrderController
 {
+    private const decimal MAX_CASH_PAYMENT = 2500;
+    private const int TIME_TO_SEND = 5000;
 
     private readonly IOrderService orderService;
     private readonly Display orderDisplay;
@@ -24,11 +26,11 @@ public class OrderController : IOrderController
     public async Task<bool> New()
     {
         var orderModel = orderDisplay.NewOrder();
-
         var order = orderModel.ToEntity();
-        order.Status = OrderStatus.New;
-        order.OrderDate = DateTime.Now;
 
+        order.OrderDate = DateTime.Now;
+        order.Status = order.Price > MAX_CASH_PAYMENT && order.PaymentType == PaymentType.Cash ? OrderStatus.Returned : OrderStatus.New;
+ 
         var result = await orderService.Add(order);
 
         if (result == null)
@@ -110,9 +112,23 @@ public class OrderController : IOrderController
                 {
                     orderDisplay.Success("Status zamówienia zmieniony pomyślnie!");
                 }
+                if (result.Status == OrderStatus.Inshipping)
+                {
+                    Task.Run(() => SendOrder(result));
+                }
 
             }
         } while (!quit);
         return true;
     }
+
+    private async Task SendOrder(Order order)
+    {
+        await Task.Delay(TIME_TO_SEND);
+  
+        order.SentDate = DateTime.Now;
+        order.Status = OrderStatus.Sent;
+        var result = await orderService.Update(order);
+    }
+
 }
