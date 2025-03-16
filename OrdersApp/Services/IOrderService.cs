@@ -13,8 +13,8 @@ public interface IOrderService
     public Task<Order> Add(Order order);
     public Task<Order> Get(int id);
     public Task Delete(int id);
-    public Task<IEnumerable<Order>> GetAll();
+    public IQueryable<Order> GetAll();
     public Task DeleteAll();
-    public Task Update(Order order);
+    public Task<Order> Update(Order order);
 
 }

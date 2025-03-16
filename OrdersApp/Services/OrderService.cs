@@ -39,13 +39,16 @@ namespace OrdersApp.Services
 
         public async Task<Order> Get(int id) => await dbContext.Orders.FirstOrDefaultAsync(o => o.Id == id);
 
-        public async Task<IEnumerable<Order>> GetAll() => await dbContext.Orders.ToListAsync();
+        public IQueryable<Order> GetAll()
+        {
+            return dbContext.Orders.AsNoTracking().AsQueryable();
+        }
 
-        public async Task Update(Order order)
+        public async Task<Order> Update(Order order)
         {
             dbContext.Orders.Update(order);
             await dbContext.SaveChangesAsync();
-            return;
+            return order;
         }
     }
 }

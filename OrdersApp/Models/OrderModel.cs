@@ -7,7 +7,7 @@ namespace OrdersApp.Models;
 
 public class OrderModel
 {
-    [DisplayName("Id")]
+    [DisplayName("Numer")]
     public int Id { get; set; }
 
     [DisplayName("Nazwa produktu")]
@@ -47,6 +47,7 @@ public class OrderModel
     [DefaultValue(ClientType.Individual)]
     public ClientType ClientType { get; set; }
 
+    public OrderModel() { }
     public OrderModel(Order order)
     {
         Id = order.Id;

@@ -9,7 +9,7 @@ using Spectre.Console;
 using System.Globalization;
 
 
-namespace OrdersApp;
+namespace OrdersApp.View;
 
 public class Display
 {
@@ -17,13 +17,11 @@ public class Display
     private static readonly string ApplicationFooter = "[bold][italic]Wybierz polecenie?[/][/]";
     private static readonly int LineWidth = 50;
 
-    private readonly IOrderService orderService;
     private readonly DisplayNameHelper displayNameHelper;
 
-    public Display(IOrderService orderService)
+    public Display()
     {
-        this.orderService = orderService;
-        this.displayNameHelper = new DisplayNameHelper();
+        displayNameHelper = new DisplayNameHelper();
     }
 
     public void Welcome()
@@ -33,11 +31,14 @@ public class Display
         Footer();
     }
 
-    public async Task NewOrder()
+    public OrderModel NewOrder(OrderModel order = null)
     {
-        Header("Nowe zamówienie");
-        Order order = new Order();
+        if (order == null)
+        {
+            order = new OrderModel();
+        }
 
+        Header("Nowe zamówienie");
         order.ProductName = AnsiConsole.Ask<string>($"{displayNameHelper.GetDisplayName(order, nameof(order.ProductName))}: ");
         order.Price = AnsiConsole.Ask<decimal>($"{displayNameHelper.GetDisplayName(order, nameof(order.Price))}: ");
         order.DeliveryAddress = AnsiConsole.Ask<string>($"{displayNameHelper.GetDisplayName(order, nameof(order.DeliveryAddress))}: ");
@@ -58,49 +59,62 @@ public class Display
                 .DefaultValue(ClientType.Company.StringValue())
                 .Culture(CultureInfo.InstalledUICulture));
         order.ClientType = (ClientType)client.GetEnumFromString<ClientType>();
-        order.Status = OrderStatus.New;
 
-        order.OrderDate = DateTime.Now;
-        var result = await orderService.Add(order);
-
-        Welcome();
+        return order;
+        //var result = await orderService.Add(order);
     }
-    public void OrderToWarehouse()
+    public string ChangeStatus(IEnumerable<OrderModel> orderList, OrderStatus newStatus)
     {
-        Header("Wyślij do magazynu");
+        Header($"Zmień status zamówienia na [red]{newStatus.Name()}[/]");
+        OrdersTable(orderList);
 
-        Footer();
-    }
+        var orderIdList = orderList.Select(o => o.Id.ToString()).ToList();
+        orderIdList.Add("P");
+        var orderId = AnsiConsole.Prompt(
+            new TextPrompt<string>($"Podaj numer zamówienia ([bold]P[/] -> powrót)")
+                .AddChoices(orderIdList)
+                .DefaultValue("P"));
 
-    public void SendOrder()
-    {
-        Header("Wysyłka zamówienia");
-
-        Footer();
+        return orderId;
     }
 
-    public void DisplayOrders()
+    public string SendOrder(IEnumerable<OrderModel> orderList)
     {
-        var orders = orderService.GetAll().Result;
+        return ChangeStatus(orderList, OrderStatus.Inwarehouse);
+    }
 
-        var orderList = orders.Select(o => new OrderModel(o));
+    public string DisplayOrders(IEnumerable<OrderModel> orderList)
+    {
+        Header("Lista zamówień");
+        OrdersTable(orderList);
+        var filterStr = AnsiConsole.Prompt(
+            new TextPrompt<string>($"Fitrowanie po statusie ([bold]P[/] -> powrót)")
+                .AddChoice(OrderStatus.New.StringValue())
+                .AddChoice(OrderStatus.Inwarehouse.StringValue())
+                .AddChoice(OrderStatus.Inshipping.StringValue())
+                .AddChoice(OrderStatus.Sent.StringValue())
+                .AddChoice(OrderStatus.Canceled.StringValue())
+                .AddChoice(OrderStatus.Returned.StringValue())
+                .AddChoice(OrderStatus.Error.StringValue())
+                .AddChoice(OrderStatus.Closed.StringValue())
+                .DefaultValue("P"));
+
+        return filterStr;
+    }
+
+    private void OrdersTable(IEnumerable<OrderModel> orderList)
+    {
         var fields = OrderModel.FieldNames();
-
         var orderTable = new Spectre.Console.Table();
         orderTable.AddColumns(fields.ToArray());
-
         var formatColor = "[green]";
         foreach (var order in orderList)
         {
             orderTable.AddRow(GetRowValues(order, formatColor).ToArray());
             formatColor = formatColor == "[green]" ? "[blue]" : "[green]";
         }
-
-        Header("Lista zamówień");
         AnsiConsole.Write(orderTable);
-        Footer("Filtrowanie : ");
-
-    }
+    }   
 
     private IEnumerable<string> GetRowValues(OrderModel order, string formatColor)
      => new List<string>
@@ -169,6 +183,12 @@ public class Display
     public void Error(string message)
     {
         AnsiConsole.MarkupLine($"[red]{message}[/]");
+        AnsiConsole.Confirm("Naciśnij dowolny klawisz aby kontynuować");
+    }
+    public void Success(string message)
+    {
+        AnsiConsole.MarkupLine($"[yellow]{message}[/]");
+        AnsiConsole.Confirm("Naciśnij dowolny klawisz aby kontynuować");
     }
 
 }

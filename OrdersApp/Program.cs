@@ -1,43 +1,49 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using OrdersApp;
+using OrdersApp.Controlers;
 using OrdersApp.Data;
 using OrdersApp.Enums;
 using OrdersApp.Extensions;
 using OrdersApp.Services;
+using OrdersApp.View;
 
 HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 hostBuilder.Services.AddSingleton<OrdersDbContext>();
 hostBuilder.Services.AddSingleton<IOrderService, OrderService>();
+hostBuilder.Services.AddSingleton<IOrderController, OrderController>();
+hostBuilder.Services.AddSingleton<Display>();
 using IHost host = hostBuilder.Build();
 
-MainLoop();
+
+MainLoop(host.Services.GetRequiredService<IOrderController>(), host.Services.GetRequiredService<Display>());
 
 
-void MainLoop()
+async void MainLoop(IOrderController orderController, Display mainDisplay)
 {
-    var mainDisplay = new Display(host.Services.GetRequiredService<IOrderService>());
     mainDisplay.Welcome();
-    ConsoleKeyInfo keyinfo;
+
     var runApplication = true;
     do
     {
-        keyinfo = Console.ReadKey();
+        var keyinfo = Console.ReadKey();
         string testKey = keyinfo.Key == ConsoleKey.Escape ? "ESC" : keyinfo.KeyChar.ToString();
         var command = testKey.GetEnumFromDescription<Commands>();
         switch (command)
         {
             case Commands.NewOrder:
-                mainDisplay.NewOrder();
+                runApplication = await orderController.New();
+                if (runApplication) mainDisplay.Welcome();
                 break;
             case Commands.SendToWarehouse:
-                mainDisplay.OrderToWarehouse();
+                runApplication = await orderController.ChangeStatus(OrderStatus.New);
+                if (runApplication) mainDisplay.Welcome();
                 break;
             case Commands.SendToShipping:
-                mainDisplay.SendOrder();
+                runApplication = await orderController.ChangeStatus(OrderStatus.Inwarehouse);
+                if (runApplication) mainDisplay.Welcome();
                 break;
             case Commands.DisplayOrders:
-                mainDisplay.DisplayOrders();
+                orderController.Show();
                 break;
             case Commands.Exit:
                 runApplication = mainDisplay.CloseApplication();
