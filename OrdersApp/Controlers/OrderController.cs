@@ -1,9 +1,11 @@
-﻿using OrdersApp.Entities;
+﻿using OrdersApp.Constans;
+using OrdersApp.Entities;
 using OrdersApp.Enums;
 using OrdersApp.Extensions;
 using OrdersApp.Models;
 using OrdersApp.Services;
-using OrdersApp.View;
+using OrdersApp.Validator;
+using OrdersApp.Views;
 using System.Linq.Expressions;
 
 namespace OrdersApp.Controlers;
@@ -14,18 +16,27 @@ public class OrderController : IOrderController
     private const int TIME_TO_SEND = 5000;
 
     private readonly IOrderService orderService;
-    private readonly Display orderDisplay;
+    private readonly IDisplay orderDisplay;
+    private readonly OrderModelValidator orderValidator;
 
-
-    public OrderController(IOrderService orderService, Display orderDisplay)
+    public OrderController(IOrderService orderService, IDisplay orderDisplay, OrderModelValidator orderValidator)
     {
         this.orderService = orderService;
         this.orderDisplay = orderDisplay;
+        this.orderValidator = orderValidator;
     }
     
     public async Task<bool> New()
     {
         var orderModel = orderDisplay.NewOrder();
+        var validationResult = orderValidator.Validate(orderModel);
+        if (!validationResult.IsValid)
+        {
+            IEnumerable<(string error, string propertyName)> errorList = validationResult.Errors.Select(e => (e.ErrorMessage, e.PropertyName) );
+            orderDisplay.Error(errorList);
+            return true;
+        }
+        
         var order = orderModel.ToEntity();
 
         order.OrderDate = DateTime.Now;
@@ -35,11 +46,11 @@ public class OrderController : IOrderController
 
         if (result == null)
         {
-            orderDisplay.Error("Order not added");
+            orderDisplay.Error(Messages.ERROR_ORDER_ADD);
         }
         if (result.Id == 0)
         {
-            orderDisplay.Error("Order not added");
+            orderDisplay.Error(Messages.ERROR_ORDER_ADD);
         }
 
         return true;
@@ -51,13 +62,13 @@ public class OrderController : IOrderController
         var filterType = "";
         do
         {
-            var filterClausule = GetStatusFilter(filterType);
+            var filterClausule = GetStatusFilter(filterType ?? "");
         
             var orders = orderService.GetAll().Where(filterClausule);
             var orderList =  orders.Select(o => new OrderModel(o));
 
             filterType = orderDisplay.DisplayOrders(orderList);
-            if (filterType == "P")
+            if (string.IsNullOrWhiteSpace(filterType) || filterType == "P")
             {
                 quit = true;
             }
@@ -106,11 +117,11 @@ public class OrderController : IOrderController
                 var result = await orderService.Update(order);
                 if (result == null)
                 {
-                    orderDisplay.Error("Order not found");
+                    orderDisplay.Error(Messages.ERROR_ORDER_NOT_FOUND);
                 }
                 if (result.Status == status.Next())
                 {
-                    orderDisplay.Success("Status zamówienia zmieniony pomyślnie!");
+                    orderDisplay.Success(Messages.ORDER_ADDED);
                 }
                 if (result.Status == OrderStatus.Inshipping)
                 {
@@ -121,6 +132,51 @@ public class OrderController : IOrderController
         } while (!quit);
         return true;
     }
+
+    public void Start()
+    {
+        MainLoop();
+    }
+
+    private async void MainLoop()
+    {
+        orderDisplay.Welcome();
+
+        var runApplication = true;
+        do
+        {
+            var keyinfo = Console.ReadKey();
+            string testKey = keyinfo.Key == ConsoleKey.Escape ? "ESC" : keyinfo.KeyChar.ToString();
+            var command = testKey.GetEnumFromDescription<Commands>();
+            switch (command)
+            {
+                case Commands.NewOrder:
+                    runApplication = await New();
+                    if (runApplication) orderDisplay.Welcome();
+                    break;
+                case Commands.SendToWarehouse:
+                    runApplication = await ChangeStatus(OrderStatus.New);
+                    if (runApplication) orderDisplay.Welcome();
+                    break;
+                case Commands.SendToShipping:
+                    runApplication = await ChangeStatus(OrderStatus.Inwarehouse);
+                    if (runApplication) orderDisplay.Welcome();
+                    break;
+                case Commands.DisplayOrders:
+                    Show();
+                    break;
+                case Commands.Exit:
+                    runApplication = orderDisplay.CloseApplication();
+                    if (runApplication) orderDisplay.Welcome();
+                    break;
+                default:
+                    orderDisplay.Welcome();
+                    break;
+            }
+        }
+        while (runApplication);
+    }
+
 
     private async Task SendOrder(Order order)
     {

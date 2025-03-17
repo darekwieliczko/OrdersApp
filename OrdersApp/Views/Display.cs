@@ -6,9 +6,9 @@ using Spectre.Console;
 using System.Globalization;
 
 
-namespace OrdersApp.View;
+namespace OrdersApp.Views;
 
-public class Display
+public class Display : IDisplay
 {
     private static readonly string ApplicationTitle = "[lime]Aplikacja do obsługi zamówień[/]";
     private static readonly string ApplicationFooter = "[bold][italic]Wybierz polecenie?[/][/]";
@@ -35,6 +35,7 @@ public class Display
             order = new OrderModel();
         }
 
+        AnsiConsole.Cursor.Show();
         Header("Nowe zamówienie");
         order.ProductName = AnsiConsole.Ask<string>($"{displayNameHelper.GetDisplayName(order, nameof(order.ProductName))}: ");
         order.Price = AnsiConsole.Ask<decimal>($"{displayNameHelper.GetDisplayName(order, nameof(order.Price))}: ");
@@ -58,12 +59,12 @@ public class Display
         order.ClientType = (ClientType)client.GetEnumFromString<ClientType>();
 
         return order;
-        //var result = await orderService.Add(order);
     }
     public string ChangeStatus(IEnumerable<OrderModel> orderList, OrderStatus newStatus)
     {
-        Header($"Zmień status zamówienia na [red]{newStatus.Name()}[/]");
-        OrdersTable(orderList);
+        AnsiConsole.Clear();
+        var title = $"Zmień status zamówienia na [red]{newStatus.Name()}[/]";
+        OrdersTable(orderList, title);
 
         var orderIdList = orderList.Select(o => o.Id.ToString()).ToList();
         orderIdList.Add("P");
@@ -77,8 +78,8 @@ public class Display
 
     public string DisplayOrders(IEnumerable<OrderModel> orderList)
     {
-        Header("Lista zamówień");
-        OrdersTable(orderList);
+        AnsiConsole.Clear();
+        OrdersTable(orderList, $"Lista zamówień - filtry : {GetStatusDescription()}");
         var filterStr = AnsiConsole.Prompt(
             new TextPrompt<string>($"Fitrowanie po statusie ([bold]P[/] -> powrót)")
                 .AddChoice(OrderStatus.New.StringValue())
@@ -94,10 +95,22 @@ public class Display
         return filterStr;
     }
 
-    private void OrdersTable(IEnumerable<OrderModel> orderList)
+    private string GetStatusDescription()
+    {
+        var result = string.Empty;
+        foreach (OrderStatus status in Enum.GetValues(typeof(OrderStatus)))
+        {
+            result += $"{status.StringValue()}-{status.Name()}| ";
+        }
+
+        return result;
+    }
+
+    private void OrdersTable(IEnumerable<OrderModel> orderList, string header)
     {
         var fields = OrderModel.FieldNames();
         var orderTable = new Spectre.Console.Table();
+        orderTable.Title(header);
         orderTable.AddColumns(fields.ToArray());
         var formatColor = "[green]";
         foreach (var order in orderList)
@@ -177,6 +190,17 @@ public class Display
         AnsiConsole.MarkupLine($"[red]{message}[/]");
         AnsiConsole.Confirm("Naciśnij dowolny klawisz aby kontynuować");
     }
+
+    public void Error(IEnumerable<(string error, string propertyName)> errorList)
+    {
+        foreach (var failure in errorList)
+        {
+            AnsiConsole.MarkupLine($"[red]{failure.propertyName}[/] => [bold]{failure.error}[/]");
+        }
+        AnsiConsole.Confirm("Naciśnij dowolny klawisz aby kontynuować");
+    }
+
+
     public void Success(string message)
     {
         AnsiConsole.MarkupLine($"[yellow]{message}[/]");
